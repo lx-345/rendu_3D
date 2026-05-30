@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Analyse de Clustering avec R</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Cluster_Complet_html_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Cluster_Complet_html_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Cluster_Complet_html_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Cluster_Complet_html_files/libs/quarto-html/popper.min.js"></script>
+<script src="Cluster_Complet_html_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Cluster_Complet_html_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Cluster_Complet_html_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Cluster_Complet_html_files/libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Cluster_Complet_html_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Cluster_Complet_html_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Cluster_Complet_html_files/libs/bootstrap/bootstrap-50c032be40e761663ca4276471ac9b4e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Plan du rapport</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#les-données-simulées" id="toc-les-données-simulées" class="nav-link" data-scroll-target="#les-données-simulées"><span class="header-section-number">2</span> Les données simulées</a>
+  <ul class="collapse">
+  <li><a href="#description" id="toc-description" class="nav-link" data-scroll-target="#description"><span class="header-section-number">2.1</span> Description</a></li>
+  <li><a href="#génération-des-données" id="toc-génération-des-données" class="nav-link" data-scroll-target="#génération-des-données"><span class="header-section-number">2.2</span> Génération des données</a></li>
+  <li><a href="#visualisation-des-données-continues" id="toc-visualisation-des-données-continues" class="nav-link" data-scroll-target="#visualisation-des-données-continues"><span class="header-section-number">2.3</span> Visualisation des données continues</a></li>
+  <li><a href="#visualisation-des-variables-discrètes" id="toc-visualisation-des-variables-discrètes" class="nav-link" data-scroll-target="#visualisation-des-variables-discrètes"><span class="header-section-number">2.4</span> Visualisation des variables discrètes</a></li>
+  </ul></li>
+  <li><a href="#méthodes-algorithmiques" id="toc-méthodes-algorithmiques" class="nav-link" data-scroll-target="#méthodes-algorithmiques"><span class="header-section-number">3</span> Méthodes algorithmiques</a>
+  <ul class="collapse">
+  <li><a href="#k-means" id="toc-k-means" class="nav-link" data-scroll-target="#k-means"><span class="header-section-number">3.1</span> K-means</a>
+  <ul class="collapse">
+  <li><a href="#principe" id="toc-principe" class="nav-link" data-scroll-target="#principe"><span class="header-section-number">3.1.1</span> Principe</a></li>
+  <li><a href="#choix-du-nombre-de-clusters-k" id="toc-choix-du-nombre-de-clusters-k" class="nav-link" data-scroll-target="#choix-du-nombre-de-clusters-k"><span class="header-section-number">3.1.2</span> Choix du nombre de clusters K</a></li>
+  <li><a href="#application-du-k-means-avec-k-3" id="toc-application-du-k-means-avec-k-3" class="nav-link" data-scroll-target="#application-du-k-means-avec-k-3"><span class="header-section-number">3.1.3</span> Application du K-means avec K = 3</a></li>
+  <li><a href="#table-de-confusion-et-taux-de-mauvaise-classification" id="toc-table-de-confusion-et-taux-de-mauvaise-classification" class="nav-link" data-scroll-target="#table-de-confusion-et-taux-de-mauvaise-classification"><span class="header-section-number">3.1.4</span> Table de confusion et taux de mauvaise classification</a></li>
+  </ul></li>
+  <li><a href="#classification-hiérarchique-ascendante-cah" id="toc-classification-hiérarchique-ascendante-cah" class="nav-link" data-scroll-target="#classification-hiérarchique-ascendante-cah"><span class="header-section-number">3.2</span> Classification hiérarchique ascendante (CAH)</a>
+  <ul class="collapse">
+  <li><a href="#principe-1" id="toc-principe-1" class="nav-link" data-scroll-target="#principe-1"><span class="header-section-number">3.2.1</span> Principe</a></li>
+  <li><a href="#application-sur-les-données-continues" id="toc-application-sur-les-données-continues" class="nav-link" data-scroll-target="#application-sur-les-données-continues"><span class="header-section-number">3.2.2</span> Application sur les données continues</a></li>
+  <li><a href="#table-de-confusion-cah" id="toc-table-de-confusion-cah" class="nav-link" data-scroll-target="#table-de-confusion-cah"><span class="header-section-number">3.2.3</span> Table de confusion CAH</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#méthodes-paramétriques-modèles-de-mélanges-finis" id="toc-méthodes-paramétriques-modèles-de-mélanges-finis" class="nav-link" data-scroll-target="#méthodes-paramétriques-modèles-de-mélanges-finis"><span class="header-section-number">4</span> Méthodes paramétriques (modèles de mélanges finis)</a>
+  <ul class="collapse">
+  <li><a href="#mbc-model-based-clustering-mclust" id="toc-mbc-model-based-clustering-mclust" class="nav-link" data-scroll-target="#mbc-model-based-clustering-mclust"><span class="header-section-number">4.1</span> MBC — Model-Based Clustering (<code>mclust</code>)</a>
+  <ul class="collapse">
+  <li><a href="#principe-2" id="toc-principe-2" class="nav-link" data-scroll-target="#principe-2"><span class="header-section-number">4.1.1</span> Principe</a></li>
+  <li><a href="#application" id="toc-application" class="nav-link" data-scroll-target="#application"><span class="header-section-number">4.1.2</span> Application</a></li>
+  <li><a href="#table-de-confusion-mbc" id="toc-table-de-confusion-mbc" class="nav-link" data-scroll-target="#table-de-confusion-mbc"><span class="header-section-number">4.1.3</span> Table de confusion MBC</a></li>
+  </ul></li>
+  <li><a href="#lca-latent-class-analysis-polca" id="toc-lca-latent-class-analysis-polca" class="nav-link" data-scroll-target="#lca-latent-class-analysis-polca"><span class="header-section-number">4.2</span> LCA — Latent Class Analysis (<code>poLCA</code>)</a>
+  <ul class="collapse">
+  <li><a href="#principe-3" id="toc-principe-3" class="nav-link" data-scroll-target="#principe-3"><span class="header-section-number">4.2.1</span> Principe</a></li>
+  <li><a href="#application-sur-les-variables-discrètes" id="toc-application-sur-les-variables-discrètes" class="nav-link" data-scroll-target="#application-sur-les-variables-discrètes"><span class="header-section-number">4.2.2</span> Application sur les variables discrètes</a></li>
+  <li><a href="#table-de-confusion-lca" id="toc-table-de-confusion-lca" class="nav-link" data-scroll-target="#table-de-confusion-lca"><span class="header-section-number">4.2.3</span> Table de confusion LCA</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#comparaison-des-méthodes" id="toc-comparaison-des-méthodes" class="nav-link" data-scroll-target="#comparaison-des-méthodes"><span class="header-section-number">5</span> Comparaison des méthodes</a></li>
+  <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion"><span class="header-section-number">6</span> Discussion</a></li>
+  <li><a href="#références" id="toc-références" class="nav-link" data-scroll-target="#références"><span class="header-section-number">7</span> Références</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Analyse de Clustering avec R</h1>
+<p class="subtitle lead">D’après Flynt &amp; Dean (2016) — <em>A Survey of Popular R Packages for Cluster Analysis</em></p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Date de publication</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">30 mai 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: verification-et-installation-packages</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Liste globale de tous les packages requis pour ce document</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>packages_requis <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"mclust"</span>, <span class="st">"mvtnorm"</span>, <span class="st">"MASS"</span>, <span class="st">"ggplot2"</span>, <span class="st">"dplyr"</span>, <span class="st">"tidyr"</span>, <span class="st">"plotly"</span>, <span class="st">"gtools"</span>, <span class="st">"knitr"</span>, <span class="st">"plot3D"</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Boucle de vérification et d'installation automatique</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (pkg <span class="cf">in</span> packages_requis) {</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">require</span>(pkg, <span class="at">character.only =</span> <span class="cn">TRUE</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">install.packages</span>(pkg, <span class="at">dependencies =</span> <span class="cn">TRUE</span>, <span class="at">repos =</span> <span class="st">"[https://cloud.r-project.org](https://cloud.r-project.org)"</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(pkg, <span class="at">character.only =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>L’<strong>analyse de clustering</strong> est un ensemble de méthodes statistiques permettant de découvrir des structures de groupes dans les données, en regroupant des observations similaires dans des classes distinctes (Everitt et al., 2011).</p>
+<p>L’article de Flynt &amp; Dean (2016) passe en revue les packages R les plus utilisés pour le clustering :</p>
+<ul>
+<li><code>kmeans</code> et <code>hclust</code> (package <code>stats</code>) — méthodes algorithmiques</li>
+<li><code>mclust</code> — clustering basé sur les modèles (MBC, données continues)</li>
+<li><code>poLCA</code> — analyse de classes latentes (LCA, données catégorielles)</li>
+<li><code>clustMD</code> — MBC pour données mixtes (continues + catégorielles)</li>
+</ul>
+<p>Ces méthodes peuvent être classées en trois grandes catégories : <strong>algorithmiques</strong>, <strong>paramétriques</strong> et <strong>non paramétriques</strong>.</p>
+<hr>
+</section>
+<section id="les-données-simulées" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Les données simulées</h1>
+<section id="description" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="description"><span class="header-section-number">2.1</span> Description</h2>
+<p>Le jeu de données simulé contient <strong>600 observations</strong> avec :</p>
+<ul>
+<li><strong>2 variables continues</strong> (X1, X2) formant 3 groupes sous-jacents (2 sphériques, 1 elliptique)</li>
+<li><strong>4 variables discrètes</strong> : c1, c2, c3 (binaires), c4 (ternaire)</li>
+</ul>
+</section>
+<section id="génération-des-données" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="génération-des-données"><span class="header-section-number">2.2</span> Génération des données</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mclust)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mvtnorm)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plotly)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">288</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Paramètres des groupes</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>pi_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.3</span>, <span class="fl">0.4</span>, <span class="fl">0.3</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>mu     <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">0</span>, <span class="dv">6</span>), <span class="dv">2</span>, <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>Sigma.sph <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>Sigma.ell <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">2</span>, <span class="fl">1.3</span>, <span class="fl">1.3</span>, <span class="dv">1</span>), <span class="dv">2</span>, <span class="dv">2</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Attribution des classes</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>), <span class="dv">600</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>, <span class="at">prob =</span> pi_vec)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Variables continues</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, <span class="dv">600</span>, <span class="dv">2</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">600</span>) {</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (cl[i] <span class="sc">==</span> <span class="dv">3</span>) {</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    X[i, ] <span class="ot">&lt;-</span> <span class="fu">rmvnorm</span>(<span class="dv">1</span>, mu[, <span class="dv">3</span>], Sigma.ell)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    X[i, ] <span class="ot">&lt;-</span> <span class="fu">rmvnorm</span>(<span class="dv">1</span>, mu[, cl[i]], Sigma.sph)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Variables discrètes</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>c1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="dv">600</span>, <span class="dv">1</span>, .<span class="dv">5</span>) <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>c2 <span class="ot">&lt;-</span> <span class="fu">integer</span>(<span class="dv">600</span>)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">600</span>) {</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  c2[i] <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(cl[i] <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">rbinom</span>(<span class="dv">1</span>, <span class="dv">1</span>, .<span class="dv">1</span>) <span class="sc">+</span> <span class="dv">1</span>, <span class="fu">rbinom</span>(<span class="dv">1</span>, <span class="dv">1</span>, .<span class="dv">9</span>) <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>c3 <span class="ot">&lt;-</span> <span class="fu">integer</span>(<span class="dv">600</span>)</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">600</span>) {</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (cl[i] <span class="sc">==</span> <span class="dv">1</span>) c3[i] <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">c</span>(.<span class="dv">6</span>, .<span class="dv">2</span>, .<span class="dv">2</span>))</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (cl[i] <span class="sc">==</span> <span class="dv">2</span>) c3[i] <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">c</span>(.<span class="dv">1</span>, .<span class="dv">8</span>, .<span class="dv">1</span>))</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (cl[i] <span class="sc">==</span> <span class="dv">3</span>) c3[i] <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">c</span>(.<span class="dv">1</span>, .<span class="dv">1</span>, .<span class="dv">8</span>))</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>c4 <span class="ot">&lt;-</span> <span class="fu">integer</span>(<span class="dv">600</span>)</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">600</span>) {</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>  c4[i] <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(cl[i] <span class="sc">==</span> <span class="dv">2</span>, <span class="fu">rbinom</span>(<span class="dv">1</span>, <span class="dv">1</span>, .<span class="dv">8</span>) <span class="sc">+</span> <span class="dv">1</span>, <span class="fu">rbinom</span>(<span class="dv">1</span>, <span class="dv">1</span>, .<span class="dv">2</span>) <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Jeu de données complet</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>vars <span class="ot">&lt;-</span> <span class="fu">cbind</span>(X, c1, c2, c3, c4)</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(vars) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"X1"</span>, <span class="st">"X2"</span>, <span class="st">"c1"</span>, <span class="st">"c2"</span>, <span class="st">"c3"</span>, <span class="st">"c4"</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="visualisation-des-données-continues" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="visualisation-des-données-continues"><span class="header-section-number">2.3</span> Visualisation des données continues</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df_plot <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">X2 =</span> X[, <span class="dv">2</span>], <span class="at">Cluster =</span> <span class="fu">factor</span>(cl))</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_plot, <span class="fu">aes</span>(<span class="at">x =</span> X1, <span class="at">y =</span> X2, <span class="at">color =</span> Cluster, <span class="at">shape =</span> Cluster)) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>, <span class="at">size =</span> <span class="fl">1.8</span>) <span class="sc">+</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#2C3E50"</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"#E74C3C"</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"#27AE60"</span>),</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Groupe 1 (noir)"</span>, <span class="st">"Groupe 2 (rouge)"</span>, <span class="st">"Groupe 3 (vert)"</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_shape_manual</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="dv">16</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="dv">17</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="dv">18</span>),</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Groupe 1 (noir)"</span>, <span class="st">"Groupe 2 (rouge)"</span>, <span class="st">"Groupe 3 (vert)"</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Variables continues — affectation réelle des classes"</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"X2"</span>, <span class="at">color =</span> <span class="st">"Cluster"</span>, <span class="at">shape =</span> <span class="st">"Cluster"</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>) <span class="sc">+</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>()</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-continuous" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-continuous-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-continuous-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-continuous-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Variables continues colorées par classe réelle
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>x_bins <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">min</span>(X[,<span class="dv">1</span>]), <span class="fu">max</span>(X[,<span class="dv">1</span>]), <span class="at">length.out =</span> <span class="dv">20</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>y_bins <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">min</span>(X[,<span class="dv">2</span>]), <span class="fu">max</span>(X[,<span class="dv">2</span>]), <span class="at">length.out =</span> <span class="dv">20</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>grid_counts <span class="ot">&lt;-</span> <span class="fu">table</span>(<span class="fu">cut</span>(X[,<span class="dv">1</span>], x_bins), <span class="fu">cut</span>(X[,<span class="dv">2</span>], y_bins))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">hist3D</span>(<span class="at">z =</span> grid_counts, <span class="at">x =</span> x_bins[<span class="sc">-</span><span class="dv">1</span>], <span class="at">y =</span> y_bins[<span class="sc">-</span><span class="dv">1</span>],</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">phi =</span> <span class="dv">30</span>, <span class="at">theta =</span> <span class="dv">45</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="st">"skyblue"</span>, <span class="at">border =</span> <span class="st">"black"</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">xlab =</span> <span class="st">"V1"</span>, <span class="at">ylab =</span> <span class="st">"V2"</span>, <span class="at">zlab =</span> <span class="st">"Fréquence (N)"</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Histogramme 3D des fréquences"</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Cluster_Complet_html_files/figure-html/histogramme-frequences-3d-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="visualisation-des-variables-discrètes" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="visualisation-des-variables-discrètes"><span class="header-section-number">2.4</span> Visualisation des variables discrètes</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df_disc <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">c1 =</span> <span class="fu">factor</span>(c1, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>),</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">c2 =</span> <span class="fu">factor</span>(c2, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>),</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">c3 =</span> <span class="fu">factor</span>(c3, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">c4 =</span> <span class="fu">factor</span>(c4, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>),</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">cluster =</span> <span class="fu">factor</span>(cl, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Cl 1"</span>, <span class="st">"Cl 2"</span>, <span class="st">"Cl 3"</span>))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>df_long <span class="ot">&lt;-</span> <span class="fu">pivot_longer</span>(df_disc, <span class="at">cols =</span> <span class="fu">c</span>(c1, c2, c3, c4),</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>                        <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"modalite"</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>df_prop <span class="ot">&lt;-</span> df_long <span class="sc">%&gt;%</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(variable, cluster, modalite) <span class="sc">%&gt;%</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>(), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(variable, cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pct =</span> <span class="dv">100</span> <span class="sc">*</span> n <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_prop, <span class="fu">aes</span>(<span class="at">x =</span> cluster, <span class="at">y =</span> pct, <span class="at">fill =</span> modalite)) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="st">"stack"</span>) <span class="sc">+</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>variable, <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">labeller =</span> label_both) <span class="sc">+</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Variables discrètes — proportion des modalités par cluster"</span>,</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Cluster"</span>, <span class="at">y =</span> <span class="st">"Pourcentage (%)"</span>, <span class="at">fill =</span> <span class="st">"Modalité"</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-discrete" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-discrete-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-discrete-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-discrete-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Répartition des variables discrètes par cluster (% par modalité)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="méthodes-algorithmiques" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Méthodes algorithmiques</h1>
+<section id="k-means" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="k-means"><span class="header-section-number">3.1</span> K-means</h2>
+<section id="principe" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="principe"><span class="header-section-number">3.1.1</span> Principe</h3>
+<p>Le <strong>k-means</strong> affecte chaque point au cluster dont il est le plus proche du centroïde (distance euclidienne). Il suppose une variabilité égale dans tous les clusters → clusters <strong>sphériques</strong> de volume égal.</p>
+<p>Le choix du nombre de clusters K se fait généralement via la <strong>méthode du coude</strong> : on trace la somme des carrés intra-cluster (WSS) en fonction de K et on repère le point d’inflexion.</p>
+</section>
+<section id="choix-du-nombre-de-clusters-k" class="level3" data-number="3.1.2">
+<h3 data-number="3.1.2" class="anchored" data-anchor-id="choix-du-nombre-de-clusters-k"><span class="header-section-number">3.1.2</span> Choix du nombre de clusters K</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calcul du WSS pour k = 1 à 10</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>wss <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>, <span class="cf">function</span>(k) {</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kmeans</span>(X, <span class="at">centers =</span> k, <span class="at">nstart =</span> <span class="dv">25</span>)<span class="sc">$</span>tot.withinss</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Détection automatique du coude (méthode de la distance maximale)</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>k_vals <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, wss[<span class="dv">1</span>])</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">10</span>, wss[<span class="dv">10</span>])</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>distance <span class="ot">&lt;-</span> <span class="fu">sapply</span>(k_vals, <span class="cf">function</span>(i) {</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">c</span>(i, wss[i])</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  num <span class="ot">&lt;-</span> <span class="fu">abs</span>((p2[<span class="dv">2</span>] <span class="sc">-</span> p1[<span class="dv">2</span>]) <span class="sc">*</span> p[<span class="dv">1</span>] <span class="sc">-</span> (p2[<span class="dv">1</span>] <span class="sc">-</span> p1[<span class="dv">1</span>]) <span class="sc">*</span> p[<span class="dv">2</span>] <span class="sc">+</span> p2[<span class="dv">1</span>] <span class="sc">*</span> p1[<span class="dv">2</span>] <span class="sc">-</span> p2[<span class="dv">2</span>] <span class="sc">*</span> p1[<span class="dv">1</span>])</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>  den <span class="ot">&lt;-</span> <span class="fu">sqrt</span>((p2[<span class="dv">2</span>] <span class="sc">-</span> p1[<span class="dv">2</span>])<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (p2[<span class="dv">1</span>] <span class="sc">-</span> p1[<span class="dv">1</span>])<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  num <span class="sc">/</span> den</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>k_opt <span class="ot">&lt;-</span> <span class="fu">which.max</span>(distance)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>df_wss <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">k =</span> k_vals, <span class="at">wss =</span> wss)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_wss, <span class="fu">aes</span>(<span class="at">x =</span> k, <span class="at">y =</span> wss)) <span class="sc">+</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"#2980B9"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"#2980B9"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> k_opt, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"#E74C3C"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> k_opt <span class="sc">+</span> <span class="fl">0.3</span>, <span class="at">y =</span> <span class="fu">max</span>(wss) <span class="sc">*</span> <span class="fl">0.95</span>,</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>           <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"K optimal ="</span>, k_opt),</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>           <span class="at">color =</span> <span class="st">"#E74C3C"</span>, <span class="at">fontface =</span> <span class="st">"bold"</span>, <span class="at">hjust =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Méthode du coude (Elbow method)"</span>,</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Nombre de clusters K"</span>,</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"WSS total (Within-Cluster Sum of Squares)"</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-elbow-kmeans" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-elbow-kmeans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-elbow-kmeans-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-elbow-kmeans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Méthode du coude — WSS total pour k = 1 à 10
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Le coude se situe à <strong>K = 3</strong>, ce qui correspond au nombre de groupes simulés.</p>
+</section>
+<section id="application-du-k-means-avec-k-3" class="level3" data-number="3.1.3">
+<h3 data-number="3.1.3" class="anchored" data-anchor-id="application-du-k-means-avec-k-3"><span class="header-section-number">3.1.3</span> Application du K-means avec K = 3</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>km <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(X, <span class="at">centers =</span> <span class="dv">3</span>, <span class="at">nstart =</span> <span class="dv">50</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df_km <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">X2 =</span> X[, <span class="dv">2</span>],</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">Estime =</span> <span class="fu">factor</span>(km<span class="sc">$</span>cluster),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">Reel   =</span> <span class="fu">factor</span>(cl))</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_km, <span class="fu">aes</span>(<span class="at">x =</span> X1, <span class="at">y =</span> X2, <span class="at">color =</span> Estime, <span class="at">shape =</span> Reel)) <span class="sc">+</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>, <span class="at">size =</span> <span class="fl">1.8</span>) <span class="sc">+</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#2C3E50"</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"#E74C3C"</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"#27AE60"</span>)) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"K-means (K = 3) — clusters estimés"</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"X2"</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Cluster estimé"</span>, <span class="at">shape =</span> <span class="st">"Classe réelle"</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>) <span class="sc">+</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>()</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-kmeans-result" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-kmeans-result-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-kmeans-result-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kmeans-result-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Résultats du K-means (K = 3) — clusters estimés vs classes réelles
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="table-de-confusion-et-taux-de-mauvaise-classification" class="level3" data-number="3.1.4">
+<h3 data-number="3.1.4" class="anchored" data-anchor-id="table-de-confusion-et-taux-de-mauvaise-classification"><span class="header-section-number">3.1.4</span> Table de confusion et taux de mauvaise classification</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Permuter les labels pour maximiser la concordance</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>conf_mat <span class="ot">&lt;-</span> <span class="fu">table</span>(cl, km<span class="sc">$</span>cluster)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>perms <span class="ot">&lt;-</span> gtools<span class="sc">::</span><span class="fu">permutations</span>(<span class="dv">3</span>, <span class="dv">3</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>best_sum  <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>best_perm <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(perms)) {</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  perm     <span class="ot">&lt;-</span> perms[i, ]</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  diag_sum <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">diag</span>(conf_mat[, perm]))</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (diag_sum <span class="sc">&gt;</span> best_sum) {</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    best_sum  <span class="ot">&lt;-</span> diag_sum</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    best_perm <span class="ot">&lt;-</span> perm</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>conf_opt <span class="ot">&lt;-</span> conf_mat[, best_perm]</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>taux_erreur_km <span class="ot">&lt;-</span> <span class="fu">round</span>((<span class="dv">600</span> <span class="sc">-</span> best_sum) <span class="sc">/</span> <span class="dv">600</span>, <span class="dv">4</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(conf_opt, <span class="at">col.names =</span> <span class="fu">paste</span>(<span class="st">"Cluster estimé"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">row.names =</span> <span class="cn">TRUE</span>, <span class="at">caption =</span> <span class="st">"Lignes = classes réelles, Colonnes = clusters estimés"</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-kmeans-conf" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-kmeans-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Table de confusion K-means (labels réordonnés)
+</figcaption>
+<div aria-describedby="tbl-kmeans-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="cell caption-top table table-sm table-striped small">
+<caption>Lignes = classes réelles, Colonnes = clusters estimés</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">Cluster estimé 1</th>
+<th style="text-align: right;">Cluster estimé 2</th>
+<th style="text-align: right;">Cluster estimé 3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">177</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">227</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">153</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><strong>Taux de mauvaise classification K-means : 0.0717</strong><br>
+Le groupe 1 est parfaitement retrouvé. Les erreurs concernent les groupes 2 et 3 qui se chevauchent.</p>
+</blockquote>
+<hr>
+</section>
+</section>
+<section id="classification-hiérarchique-ascendante-cah" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="classification-hiérarchique-ascendante-cah"><span class="header-section-number">3.2</span> Classification hiérarchique ascendante (CAH)</h2>
+<section id="principe-1" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="principe-1"><span class="header-section-number">3.2.1</span> Principe</h3>
+<p>La <strong>CAH</strong> fusionne successivement les paires de clusters les plus proches jusqu’à n’en former qu’un seul. Le résultat est visualisé sous forme de <strong>dendrogramme</strong>.</p>
+<p>Différentes méthodes de liaison (linkage) :</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Méthode</th>
+<th>Définition de la distance entre clusters</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Single</strong></td>
+<td>Minimum des distances pairwise</td>
+</tr>
+<tr class="even">
+<td><strong>Complete</strong></td>
+<td>Maximum des distances pairwise</td>
+</tr>
+<tr class="odd">
+<td><strong>Average</strong></td>
+<td>Moyenne des distances pairwise</td>
+</tr>
+<tr class="even">
+<td><strong>Ward</strong></td>
+<td>Augmentation de la variance intra-cluster</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="application-sur-les-données-continues" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="application-sur-les-données-continues"><span class="header-section-number">3.2.2</span> Application sur les données continues</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>h2 <span class="ot">&lt;-</span> <span class="fu">hclust</span>(<span class="fu">dist</span>(X), <span class="at">method =</span> <span class="st">"average"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Couleurs selon la classe réelle</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"#2C3E50"</span>, <span class="st">"#E74C3C"</span>, <span class="st">"#27AE60"</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>dend_cols <span class="ot">&lt;-</span> cols[cl]</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(h2,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">labels =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>     <span class="at">main   =</span> <span class="st">"Dendrogramme — linkage average"</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab   =</span> <span class="st">""</span>, <span class="at">sub =</span> <span class="st">""</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab   =</span> <span class="st">"Hauteur de fusion"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Ligne de coupe à 3 clusters</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="fu">rect.hclust</span>(h2, <span class="at">k =</span> <span class="dv">3</span>, <span class="at">border =</span> <span class="fu">c</span>(<span class="st">"#E74C3C"</span>, <span class="st">"#27AE60"</span>, <span class="st">"#2C3E50"</span>))</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-dendrogram" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-dendrogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-dendrogram-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dendrogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Dendrogramme issu de la CAH avec linkage ‘average’
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="table-de-confusion-cah" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="table-de-confusion-cah"><span class="header-section-number">3.2.3</span> Table de confusion CAH</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>h2cut <span class="ot">&lt;-</span> <span class="fu">cutree</span>(h2, <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>conf_h <span class="ot">&lt;-</span> <span class="fu">table</span>(cl, h2cut)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Permuter pour maximiser la concordance</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>best_sum_h  <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>best_perm_h <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(perms)) {</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  perm     <span class="ot">&lt;-</span> perms[i, ]</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  diag_sum <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">diag</span>(conf_h[, perm]))</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (diag_sum <span class="sc">&gt;</span> best_sum_h) {</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    best_sum_h  <span class="ot">&lt;-</span> diag_sum</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    best_perm_h <span class="ot">&lt;-</span> perm</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>conf_h_opt      <span class="ot">&lt;-</span> conf_h[, best_perm_h]</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>taux_erreur_cah <span class="ot">&lt;-</span> <span class="fu">round</span>((<span class="dv">600</span> <span class="sc">-</span> best_sum_h) <span class="sc">/</span> <span class="dv">600</span>, <span class="dv">4</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(conf_h_opt, <span class="at">col.names =</span> <span class="fu">paste</span>(<span class="st">"Cluster estimé"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>), <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-hclust-conf" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-hclust-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Table de confusion CAH (labels réordonnés)
+</figcaption>
+<div aria-describedby="tbl-hclust-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">Cluster estimé 1</th>
+<th style="text-align: right;">Cluster estimé 2</th>
+<th style="text-align: right;">Cluster estimé 3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">177</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">237</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">182</td>
+<td style="text-align: right;">4</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><strong>Taux de mauvaise classification CAH (average) : 0.3033</strong><br>
+Moins performant que le K-means ici, car le linkage <em>average</em> fusionne mal les groupes 2 et 3 qui se chevauchent.</p>
+</blockquote>
+<hr>
+</section>
+</section>
+</section>
+<section id="méthodes-paramétriques-modèles-de-mélanges-finis" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Méthodes paramétriques (modèles de mélanges finis)</h1>
+<section id="mbc-model-based-clustering-mclust" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="mbc-model-based-clustering-mclust"><span class="header-section-number">4.1</span> MBC — Model-Based Clustering (<code>mclust</code>)</h2>
+<section id="principe-2" class="level3" data-number="4.1.1">
+<h3 data-number="4.1.1" class="anchored" data-anchor-id="principe-2"><span class="header-section-number">4.1.1</span> Principe</h3>
+<p>Le <strong>MBC</strong> (Model-Based Clustering) suppose que les données proviennent d’un <strong>mélange de lois gaussiennes</strong> :</p>
+<p><span class="math display">\[f(\mathbf{x}) = \sum_{k=1}^{K} \tau_k f_k(\mathbf{x}), \quad 0 \leq \tau_k \leq 1, \quad \sum_{k=1}^{K} \tau_k = 1\]</span></p>
+<p>Chaque composante <span class="math inline">\(k\)</span> est caractérisée par une <strong>moyenne</strong>, une <strong>matrice de variance</strong>, et un <strong>poids</strong> <span class="math inline">\(\tau_k\)</span>. Le nombre de composantes optimal est choisi par le <strong>critère BIC</strong> (à maximiser).</p>
+<p><code>mclust</code> teste automatiquement différentes paramétrisation de la matrice de variance (EII, VVV, VVE, etc.) pour 1 à 9 composantes.</p>
+</section>
+<section id="application" class="level3" data-number="4.1.2">
+<h3 data-number="4.1.2" class="anchored" data-anchor-id="application"><span class="header-section-number">4.1.2</span> Application</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mclust)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>ml <span class="ot">&lt;-</span> <span class="fu">Mclust</span>(X)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ml, <span class="at">what =</span> <span class="st">"BIC"</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Sélection du modèle par BIC (mclust)"</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-mclust-bic" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-mclust-bic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-mclust-bic-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mclust-bic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: BIC pour les différentes paramétrisation et nombres de composantes (mclust)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>df_mclust <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">X2 =</span> X[, <span class="dv">2</span>],</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">Estime =</span> <span class="fu">factor</span>(ml<span class="sc">$</span>classification),</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">Reel   =</span> <span class="fu">factor</span>(cl))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_mclust, <span class="fu">aes</span>(<span class="at">x =</span> X1, <span class="at">y =</span> X2, <span class="at">color =</span> Estime, <span class="at">shape =</span> Reel)) <span class="sc">+</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>, <span class="at">size =</span> <span class="fl">1.8</span>) <span class="sc">+</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#2C3E50"</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"#E74C3C"</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"#27AE60"</span>)) <span class="sc">+</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">paste0</span>(<span class="st">"mclust — modèle "</span>, ml<span class="sc">$</span>modelName, <span class="st">" avec "</span>, ml<span class="sc">$</span>G, <span class="st">" composantes"</span>),</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"X2"</span>,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Cluster estimé"</span>, <span class="at">shape =</span> <span class="st">"Classe réelle"</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>) <span class="sc">+</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>()</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-mclust-classif" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-mclust-classif-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-mclust-classif-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mclust-classif-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Classification estimée par mclust
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="table-de-confusion-mbc" class="level3" data-number="4.1.3">
+<h3 data-number="4.1.3" class="anchored" data-anchor-id="table-de-confusion-mbc"><span class="header-section-number">4.1.3</span> Table de confusion MBC</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>conf_m <span class="ot">&lt;-</span> <span class="fu">table</span>(cl, ml<span class="sc">$</span>classification)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>best_sum_m  <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>best_perm_m <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(perms)) {</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  perm     <span class="ot">&lt;-</span> perms[i, ]</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  diag_sum <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">diag</span>(conf_m[, perm]))</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (diag_sum <span class="sc">&gt;</span> best_sum_m) {</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    best_sum_m  <span class="ot">&lt;-</span> diag_sum</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    best_perm_m <span class="ot">&lt;-</span> perm</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>conf_m_opt       <span class="ot">&lt;-</span> conf_m[, best_perm_m]</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>taux_erreur_mbc  <span class="ot">&lt;-</span> <span class="fu">round</span>((<span class="dv">600</span> <span class="sc">-</span> best_sum_m) <span class="sc">/</span> <span class="dv">600</span>, <span class="dv">4</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(conf_m_opt, <span class="at">col.names =</span> <span class="fu">paste</span>(<span class="st">"Cluster estimé"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>), <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-mclust-conf" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-mclust-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Table de confusion mclust
+</figcaption>
+<div aria-describedby="tbl-mclust-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">Cluster estimé 1</th>
+<th style="text-align: right;">Cluster estimé 2</th>
+<th style="text-align: right;">Cluster estimé 3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">177</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">229</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">186</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><strong>Taux de mauvaise classification MBC : 0.0133</strong><br>
+Le modèle VVE avec 3 composantes est sélectionné. Il gère bien la forme elliptique du groupe 3.</p>
+</blockquote>
+<hr>
+</section>
+</section>
+<section id="lca-latent-class-analysis-polca" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="lca-latent-class-analysis-polca"><span class="header-section-number">4.2</span> LCA — Latent Class Analysis (<code>poLCA</code>)</h2>
+<section id="principe-3" class="level3" data-number="4.2.1">
+<h3 data-number="4.2.1" class="anchored" data-anchor-id="principe-3"><span class="header-section-number">4.2.1</span> Principe</h3>
+<p>La <strong>LCA</strong> est l’équivalent du MBC pour les <strong>données catégorielles</strong>. Elle suppose l’indépendance conditionnelle des variables dans chaque classe, avec une loi multinomiale pour chaque variable dans chaque composante.</p>
+<p>Le nombre de classes est choisi par le <strong>BIC</strong> (à minimiser ici).</p>
+</section>
+<section id="application-sur-les-variables-discrètes" class="level3" data-number="4.2.2">
+<h3 data-number="4.2.2" class="anchored" data-anchor-id="application-sur-les-variables-discrètes"><span class="header-section-number">4.2.2</span> Application sur les variables discrètes</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(poLCA)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>f <span class="ot">&lt;-</span> <span class="fu">cbind</span>(c1, c2, c3, c4) <span class="sc">~</span> <span class="dv">1</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>df_lca <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(vars[, <span class="fu">c</span>(<span class="st">"c1"</span>, <span class="st">"c2"</span>, <span class="st">"c3"</span>, <span class="st">"c4"</span>)])</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>lca1 <span class="ot">&lt;-</span> <span class="fu">poLCA</span>(f, df_lca, <span class="at">nclass =</span> <span class="dv">1</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>lca2 <span class="ot">&lt;-</span> <span class="fu">poLCA</span>(f, df_lca, <span class="at">nclass =</span> <span class="dv">2</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>lca3 <span class="ot">&lt;-</span> <span class="fu">poLCA</span>(f, df_lca, <span class="at">nclass =</span> <span class="dv">3</span>, <span class="at">maxiter =</span> <span class="dv">3500</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>lca4 <span class="ot">&lt;-</span> <span class="fu">poLCA</span>(f, df_lca, <span class="at">nclass =</span> <span class="dv">4</span>, <span class="at">maxiter =</span> <span class="dv">21000</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>df_bic <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">k   =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">BIC =</span> <span class="fu">c</span>(lca1<span class="sc">$</span>bic, lca2<span class="sc">$</span>bic, lca3<span class="sc">$</span>bic, lca4<span class="sc">$</span>bic)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_bic, <span class="fu">aes</span>(<span class="at">x =</span> k, <span class="at">y =</span> BIC)) <span class="sc">+</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"#8E44AD"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"#8E44AD"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> df_bic[<span class="fu">which.min</span>(df_bic<span class="sc">$</span>BIC), ],</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>             <span class="fu">aes</span>(<span class="at">x =</span> k, <span class="at">y =</span> BIC), <span class="at">color =</span> <span class="st">"#E74C3C"</span>, <span class="at">size =</span> <span class="dv">5</span>, <span class="at">shape =</span> <span class="dv">8</span>) <span class="sc">+</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Sélection du nombre de classes — LCA (poLCA)"</span>,</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Le BIC le plus bas indique le meilleur modèle"</span>,</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Nombre de classes"</span>, <span class="at">y =</span> <span class="st">"BIC"</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-lca-bic" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lca-bic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Cluster_Complet_html_files/figure-html/fig-lca-bic-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lca-bic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: BIC pour les modèles LCA (1 à 4 classes) — un BIC plus bas est meilleur
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="table-de-confusion-lca" class="level3" data-number="4.2.3">
+<h3 data-number="4.2.3" class="anchored" data-anchor-id="table-de-confusion-lca"><span class="header-section-number">4.2.3</span> Table de confusion LCA</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>conf_lca <span class="ot">&lt;-</span> <span class="fu">table</span>(cl, lca3<span class="sc">$</span>predclass)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>best_sum_lca  <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>best_perm_lca <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(perms)) {</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  perm     <span class="ot">&lt;-</span> perms[i, ]</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  diag_sum <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">diag</span>(conf_lca[, perm]))</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (diag_sum <span class="sc">&gt;</span> best_sum_lca) {</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    best_sum_lca  <span class="ot">&lt;-</span> diag_sum</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    best_perm_lca <span class="ot">&lt;-</span> perm</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>conf_lca_opt      <span class="ot">&lt;-</span> conf_lca[, best_perm_lca]</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>taux_erreur_lca   <span class="ot">&lt;-</span> <span class="fu">round</span>((<span class="dv">600</span> <span class="sc">-</span> best_sum_lca) <span class="sc">/</span> <span class="dv">600</span>, <span class="dv">4</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(conf_lca_opt, <span class="at">col.names =</span> <span class="fu">paste</span>(<span class="st">"Classe estimée"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>), <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-lca-conf" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-lca-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: Table de confusion LCA (3 classes)
+</figcaption>
+<div aria-describedby="tbl-lca-conf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">Classe estimée 1</th>
+<th style="text-align: right;">Classe estimée 2</th>
+<th style="text-align: right;">Classe estimée 3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">36</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">178</td>
+<td style="text-align: right;">47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">162</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><strong>Taux de mauvaise classification LCA : 0.2183</strong><br>
+Plus élevé qu’avec le MBC sur données continues, car les variables discrètes séparent moins bien les groupes.</p>
+</blockquote>
+<hr>
+<hr>
+</section>
+</section>
+</section>
+<section id="comparaison-des-méthodes" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Comparaison des méthodes</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>df_compare <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  Méthode    <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"K-means"</span>, <span class="st">"CAH (average)"</span>, <span class="st">"MBC (mclust)"</span>, <span class="st">"LCA (poLCA)"</span>),</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  Données    <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"Continues"</span>, <span class="st">"Continues"</span>, <span class="st">"Continues"</span>, <span class="st">"Catégorielles"</span>),</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  Paramètre  <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"K ="</span>, k_opt), <span class="st">"K = 3, average"</span>, <span class="fu">paste</span>(ml<span class="sc">$</span>modelName, ml<span class="sc">$</span>G, <span class="st">"comp."</span>),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                 <span class="st">"3 classes"</span>),</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Taux d'erreur</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(taux_erreur_km, taux_erreur_cah, taux_erreur_mbc, taux_erreur_lca)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(df_compare, <span class="at">digits =</span> <span class="dv">4</span>, <span class="at">align =</span> <span class="st">"lllc"</span>,</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>             <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Méthode"</span>, <span class="st">"Type de données"</span>, <span class="st">"Paramètre sélectionné"</span>, <span class="st">"Taux d'erreur"</span>))</span></code></pre></div><button title="Copier vers le presse-papier" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-comparison" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: Récapitulatif des taux de mauvaise classification par méthode
+</figcaption>
+<div aria-describedby="tbl-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Méthode</th>
+<th style="text-align: left;">Type de données</th>
+<th style="text-align: left;">Paramètre sélectionné</th>
+<th style="text-align: center;">Taux d’erreur</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">K-means</td>
+<td style="text-align: left;">Continues</td>
+<td style="text-align: left;">K = 3</td>
+<td style="text-align: center;">0.0717</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CAH (average)</td>
+<td style="text-align: left;">Continues</td>
+<td style="text-align: left;">K = 3, average</td>
+<td style="text-align: center;">0.3033</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MBC (mclust)</td>
+<td style="text-align: left;">Continues</td>
+<td style="text-align: left;">VVE 3 comp.</td>
+<td style="text-align: center;">0.0133</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LCA (poLCA)</td>
+<td style="text-align: left;">Catégorielles</td>
+<td style="text-align: left;">3 classes</td>
+<td style="text-align: center;">0.2183</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p><strong>Points clés de la comparaison :</strong></p>
+<ul>
+<li>Le <strong>MBC</strong> (<code>mclust</code>) est le plus performant sur les données continues car il gère la forme elliptique du groupe 3.</li>
+<li>Le <strong>K-means</strong> est simple et efficace pour des clusters sphériques.</li>
+<li>La <strong>CAH</strong> avec <em>average linkage</em> est moins adaptée ici en raison du chevauchement.</li>
+<li>La <strong>LCA</strong> a un taux d’erreur plus élevé car les variables discrètes séparent moins bien les groupes.</li>
+<li>Le <strong>clustMD</strong> tire parti des deux types de variables simultanément.</li>
+</ul>
+<hr>
+</section>
+<section id="discussion" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Discussion</h1>
+<p>Comme illustré, différentes méthodes de clustering appliquées aux mêmes données peuvent produire des résultats très différents. Il est difficile de recommander une méthode universelle.</p>
+<p><strong>Recommandations pratiques (Flynt &amp; Dean, 2016) :</strong></p>
+<ul>
+<li>Le clustering doit être considéré comme une <strong>analyse exploratoire</strong> et les résultats devraient être validés sur un second jeu de données.</li>
+<li>Le <em>single linkage</em> hiérarchique est surtout utile pour <strong>identifier des outliers</strong>.</li>
+<li>Si on croit en une hiérarchie réelle dans les données, la <strong>CAH</strong> est préférable.</li>
+<li>Si les clusters allongés n’ont pas de sens substantiel, préférer des modèles <strong>sphériques</strong> (EII, VII, k-means, Ward).</li>
+</ul>
+<p><strong>Extensions mentionnées dans l’article :</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 62%">
+<col style="width: 37%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Extension</th>
+<th>Package R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>K-médoïdes (centres = vraies observations)</td>
+<td><code>cluster</code> (<code>pam</code>)</td>
+</tr>
+<tr class="even">
+<td>CAH divisive</td>
+<td><code>cluster</code> (<code>diana</code>)</td>
+</tr>
+<tr class="odd">
+<td>Régression par mélange</td>
+<td><code>flexmix</code></td>
+</tr>
+<tr class="even">
+<td>Sélection de variables</td>
+<td><code>clustvarsel</code>, <code>Rmixmod</code></td>
+</tr>
+<tr class="odd">
+<td>Clustering non paramétrique</td>
+<td><code>pdfCluster</code></td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+<section id="références" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Références</h1>
+<p>Flynt, A., &amp; Dean, N. (2016). A survey of popular R packages for cluster analysis. <em>Journal of Educational and Behavioral Statistics</em>, 41(2), 205–225.</p>
+<p>Everitt, B., Landau, S., Leese, M., &amp; Stahl, D. (2011). <em>Cluster Analysis</em>. Wiley.</p>
+<p>Fraley, C., &amp; Raftery, A. E. (2002). Model-based clustering, discriminant analysis, and density estimation. <em>Journal of the American Statistical Association</em>, 97, 611–631.</p>
+<p>Linzer, D. A., &amp; Lewis, J. B. (2011). poLCA: An R package for polytomous variable latent class analysis. <em>Journal of Statistical Software</em>, 42, 1–29.</p>
+<p>McParland, D. (2015). <em>clustMD: Model based clustering for mixed data</em> (R package Version 1.1).</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copié");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copié");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
