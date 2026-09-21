@@ -26,7 +26,7 @@ Cliquez sur les boutons ci-dessous pour accéder directement aux rapports HTML i
 | :---: | :---: | :---: |
 | **Quarto, Shiny & Tidyverse** | **Analyse de Clustering** | **Analyse Archétypale** |
 | Découverte du reporting dynamique et manipulation. Application interactive Shiny (loi Gamma) et étude réelle sur les tirages du Keno. | Comparaison K-means, CAH, modèles de mélanges finis et classes latentes sur des données simulées. | *From Spider-Man to Hero.* Extraction de profils purs, appliqué à l'anthropométrie et à la compression d'image RGB. |
-| [<kbd> <br> 🌐 Consulter le Projet 1 <br> </kbd>](https://votre-pseudo.github.io/nom-du-repo/projet1/index.html) | [<kbd> <br> 🌐 Consulter le Projet 2 <br> </kbd>](https://votre-pseudo.github.io/nom-du-repo/projet2/index.html) | [<kbd> <br> 🌐 Consulter le Projet 3 <br> </kbd>](https://votre-pseudo.github.io/nom-du-repo/projet3/index.html) |
+| [<kbd> <br> 🌐 Consulter le Projet 1 <br> </kbd>](https://lx-345.github.io/rendu_3D/html_Projet.html) | [<kbd> <br> 🌐 Consulter le Projet 2 <br> </kbd>](https://lx-345.github.io/rendu_3D/Cluster_Complet_html.html) | [<kbd> <br> 🌐 Consulter le Projet 3 <br> </kbd>](https://lx-345.github.io/rendu_3D/Projet_Archétypes_final.html) |
 
 <br>
 
